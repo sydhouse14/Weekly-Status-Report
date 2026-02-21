@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certa Implementation Tracker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #F5F7FA;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header-wrap {
+    background: linear-gradient(145deg, #162544 0%, #1A2F58 15%, #1F3D72 30%, #265199 50%, #3170B8 68%, #3E82CC 82%, #4A90E2 100%);
+    padding: 24px 36px 28px;
+    color: #fff;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .logo-row img { width: auto; display: block; }
+  .logo-certa { height: 44px; }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .header-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #7EB8FF;
+    background: rgba(74,144,226,0.15);
+    border: 1px solid rgba(74,144,226,0.3);
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-left: 12px;
+  }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+  .hub-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 48px 56px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+  }
+  .hub-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #3170B8, #4A90E2);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .hub-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A2B52;
+    margin-bottom: 6px;
+  }
+  .hub-subtitle {
+    font-size: 13px;
+    color: #8a9bb5;
+    margin-bottom: 32px;
+  }
+
+  /* ── Dropdown ── */
+  .select-group {
+    text-align: left;
+    margin-bottom: 24px;
+  }
+  .select-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748B;
+    margin-bottom: 8px;
+  }
+  .select-wrap {
+    position: relative;
+  }
+  .client-select {
+    width: 100%;
+    padding: 12px 44px 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a2e;
+    background: #fff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 8px;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .client-select:focus {
+    outline: none;
+    border-color: #3170B8;
+    box-shadow: 0 0 0 3px rgba(49,112,184,0.12);
+  }
+  .select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #8a9bb5;
+    pointer-events: none;
+  }
+
+  /* ── Button ── */
+  .go-btn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #265199, #3170B8);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .go-btn:hover {
+    background: linear-gradient(135deg, #1F3D72, #265199);
+    box-shadow: 0 4px 16px rgba(49,112,184,0.3);
+    transform: translateY(-1px);
+  }
+  .go-btn:active {
+    transform: translateY(0);
+  }
+  .go-btn:disabled {
+    background: #CBD5E0;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .go-link {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #3170B8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .go-link:hover {
+    text-decoration: underline;
+  }
+
+  /* ── Client count badge ── */
+  .client-count {
+    font-size: 12px;
+    color: #8a9bb5;
+    margin-top: 20px;
+  }
+  .client-count strong {
+    color: #3170B8;
+  }
+
+  /* ── Edit mode ── */
+  .edit-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #E2E8F0;
+    text-align: left;
+  }
+  .edit-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748B;
+    margin-bottom: 12px;
+  }
+  .add-client-row {
+    display: flex;
+    gap: 8px;
+  }
+  .add-client-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 13px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 8px;
+    transition: border-color 0.15s;
+  }
+  .add-client-input:focus {
+    outline: none;
+    border-color: #3170B8;
+    box-shadow: 0 0 0 3px rgba(49,112,184,0.12);
+  }
+  .add-client-btn {
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: #3170B8;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .add-client-btn:hover {
+    background: #265199;
+  }
+  .remove-client-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #E53E3E;
+    background: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .remove-client-btn:hover {
+    background: #FCA5A5;
+    color: #fff;
+  }
+  .remove-client-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    padding: 20px 36px;
+    text-align: center;
+    font-size: 11px;
+    color: #8a9bb5;
+    border-top: 1px solid #E2E8F0;
+    background: #fff;
+  }
+  .footer strong { color: #4A90E2; }
+</style>
+</head>
+<body>
+
+<header class="header-wrap">
+  <div class="logo-row">
+    <img src="certa_white_optimized.svg" alt="Certa" class="logo-certa">
+  </div>
+  <div class="header">
+    <h1>Certa Implementation Tracker <span class="header-badge">2026</span></h1>
+  </div>
+</header>
+
+<main class="main">
+  <div class="hub-card">
+    <div class="hub-icon">&#9783;</div>
+    <div class="hub-title">Select a Client Project</div>
+    <div class="hub-subtitle">Choose a client project to view their implementation tracker</div>
+
+    <div class="select-group">
+      <label class="select-label" for="clientSelect">Client</label>
+      <div class="select-wrap">
+        <select class="client-select" id="clientSelect" onchange="updateGoButton()">
+          <option value="" disabled selected>Choose a client...</option>
+        </select>
+        <span class="select-arrow">&#9662;</span>
+      </div>
+    </div>
+
+    <button class="go-btn" id="goBtn" disabled onclick="goToClient()">
+      Open Tracker &rarr;
+    </button>
+    <a class="go-link" id="goLink" style="display:none;" target="_top">Open in new window &rarr;</a>
+
+    <div class="client-count" id="clientCount"></div>
+
+    <div class="edit-section">
+      <div class="edit-section-title">Manage Client Projects</div>
+      <div class="add-client-row" style="margin-bottom: 8px;">
+        <input type="text" class="add-client-input" id="newClientName" placeholder="Client name..." onkeydown="if(event.key==='Enter') addClient();">
+        <button class="add-client-btn" onclick="addClient()">+ Add</button>
+      </div>
+      <div class="add-client-row">
+        <button class="remove-client-btn" id="removeBtn" disabled onclick="removeClient()">Remove Selected Client</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer">
+    <strong>Certa</strong> · Certa Implementation Tracker · 2026
+  </div>
+</footer>
+
+<script>
+  // ── Client Data ──
+  var defaultClients = [
+    { name: 'IB Vogt ESG', file: 'ib-vogt-project-tracker.html' },
+    { name: 'Sompo Payments', file: 'sompo-payments-project-tracker.html' },
+    { name: 'Patria', file: 'patria-project-tracker.html' }
+  ];
+
+  function getClients() {
+    try {
+      var raw = localStorage.getItem('certa-hub-clients');
+      if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return defaultClients;
+  }
+
+  function saveClients(clients) {
+    try { localStorage.setItem('certa-hub-clients', JSON.stringify(clients)); } catch(e) {}
+  }
+
+  function renderClients() {
+    var clients = getClients();
+    var select = document.getElementById('clientSelect');
+    select.innerHTML = '<option value="" disabled selected>Choose a client...</option>';
+    clients.forEach(function(c, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    });
+    document.getElementById('clientCount').innerHTML = '<strong>' + clients.length + '</strong> client' + (clients.length !== 1 ? 's' : '') + ' registered';
+    updateGoButton();
+  }
+
+  function updateGoButton() {
+    var select = document.getElementById('clientSelect');
+    var goBtn = document.getElementById('goBtn');
+    var goLink = document.getElementById('goLink');
+    var removeBtn = document.getElementById('removeBtn');
+    var hasSelection = select.value !== '';
+    goBtn.disabled = !hasSelection;
+    removeBtn.disabled = !hasSelection;
+    if (hasSelection) {
+      var clients = getClients();
+      var idx = parseInt(select.value);
+      goBtn.textContent = 'Open ' + clients[idx].name + ' Tracker →';
+      var base = window.location.href.replace(/[^\/]*$/, '');
+      goLink.href = base + clients[idx].file;
+      goLink.textContent = 'Open ' + clients[idx].name + ' in new window →';
+      goLink.style.display = 'block';
+    } else {
+      goBtn.innerHTML = 'Open Tracker &rarr;';
+      goLink.style.display = 'none';
+    }
+  }
+
+  function goToClient() {
+    var select = document.getElementById('clientSelect');
+    if (select.value === '') return;
+    var clients = getClients();
+    var idx = parseInt(select.value);
+    // Try multiple navigation methods for compatibility
+    var file = clients[idx].file;
+    // Build absolute URL based on current location
+    var base = window.location.href.replace(/[^\/]*$/, '');
+    var url = base + file;
+    // Try window.open first (works in more contexts), fall back to location
+    var win = window.open(url, '_self');
+    if (!win) {
+      window.location.href = url;
+    }
+  }
+
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  function addClient() {
+    var input = document.getElementById('newClientName');
+    var name = input.value.trim();
+    if (!name) return;
+
+    var clients = getClients();
+    // Check for duplicate
+    var exists = clients.some(function(c) { return c.name.toLowerCase() === name.toLowerCase(); });
+    if (exists) {
+      alert('"' + name + '" already exists.');
+      return;
+    }
+
+    var slug = slugify(name);
+    var file = slug + '-project-tracker.html';
+    clients.push({ name: name, file: file });
+    saveClients(clients);
+    input.value = '';
+    renderClients();
+
+    // Auto-select the new client
+    var select = document.getElementById('clientSelect');
+    select.value = clients.length - 1;
+    updateGoButton();
+  }
+
+  function removeClient() {
+    var select = document.getElementById('clientSelect');
+    if (select.value === '') return;
+    var clients = getClients();
+    var idx = parseInt(select.value);
+    var name = clients[idx].name;
+    if (!confirm('Remove "' + name + '" from the hub? This only removes it from the dropdown — the tracker file is not deleted.')) return;
+    clients.splice(idx, 1);
+    saveClients(clients);
+    renderClients();
+  }
+
+  // Init
+  renderClients();
+</script>
+
+</body>
+</html>
