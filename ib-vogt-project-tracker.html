@@ -816,8 +816,137 @@
     .section-label { color: #1a1a2e; }
   }
 </style>
+<!-- Firebase Cloud Sync -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  // ── PASTE YOUR FIREBASE CONFIG HERE ──
+  var firebaseConfig = {
+    apiKey: "AIzaSyBT7nwnqJxivGxa8VvJYqK9bGVPq_UkkA0",
+    authDomain: "certa-tracker.firebaseapp.com",
+    databaseURL: "https://certa-tracker-default-rtdb.firebaseio.com",
+    projectId: "certa-tracker",
+    storageBucket: "certa-tracker.firebasestorage.app",
+    messagingSenderId: "635187852655",
+    appId: "1:635187852655:web:a6e10ae760bc2b7916249a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.database();
+  var DB_PREFIX = 'ibvogt';
+
+  function cloudSave(key, data) {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+    try { db.ref(DB_PREFIX + '/' + key).set(data); } catch(e) {}
+  }
+
+  function cloudLoad(key, callback) {
+    db.ref(DB_PREFIX + '/' + key).once('value').then(function(snapshot) {
+      var val = snapshot.val();
+      if (val !== null) {
+        callback(val);
+        try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+      } else {
+        try {
+          var raw = localStorage.getItem(key);
+          if (raw) callback(JSON.parse(raw));
+        } catch(e) {}
+      }
+    }).catch(function() {
+      try {
+        var raw = localStorage.getItem(key);
+        if (raw) callback(JSON.parse(raw));
+      } catch(e) {}
+    });
+  }
+
+  function cloudListen(key, callback) {
+    db.ref(DB_PREFIX + '/' + key).on('value', function(snapshot) {
+      var val = snapshot.val();
+      if (val !== null) {
+        callback(val);
+        try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+      }
+    });
+  }
+</script>
+
 </head>
 <body>
+<!-- Auth Gate -->
+<div id="authGate" style="position:fixed;inset:0;background:#F5F7FA;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.08);padding:48px 56px;max-width:420px;width:100%;text-align:center;">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#3170B8,#4A90E2);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;color:#fff;margin-bottom:20px;">&#128274;</div>
+    <div style="font-size:20px;font-weight:700;color:#1A2B52;margin-bottom:6px;">IB Vogt ESG</div>
+    <div style="font-size:13px;color:#8a9bb5;margin-bottom:28px;">Enter your password to continue</div>
+    <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 16px;font-size:14px;border:1.5px solid #E2E8F0;border-radius:8px;margin-bottom:12px;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#3170B8';this.style.boxShadow='0 0 0 3px rgba(49,112,184,0.12)'" onblur="this.style.borderColor='#E2E8F0';this.style.boxShadow='none'">
+    <div id="authError" style="color:#E53E3E;font-size:12px;margin-bottom:12px;display:none;">Incorrect password</div>
+    <button id="authSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#265199,#3170B8);border:none;border-radius:8px;cursor:pointer;">Sign In</button>
+    <div style="margin-top:16px;font-size:11px;color:#CBD5E0;">Powered by Certa</div>
+  </div>
+</div>
+<script>
+(function() {
+  var ADMIN_HASH = '5cffe3f7b79963ccde70096fe8824e830ce3ad612a72d6fcd006488fa7aa3311';
+  var CLIENT_HASH = '15a0a859fb6cb0b2390ab1db0e910b25644ed5bd751911d8d99ba64b8a135f5c';
+  var SESSION_KEY = 'certa-auth-ib-vogt-esg';
+
+  var allChildren = document.body.children;
+  for (var i = 0; i < allChildren.length; i++) {
+    if (allChildren[i].id !== 'authGate') allChildren[i].style.display = 'none';
+  }
+
+  if (sessionStorage.getItem(SESSION_KEY) === 'admin') {
+    unlock(true);
+  } else if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+    unlock(false);
+  } else {
+    document.getElementById('authPassword').focus();
+  }
+
+  document.getElementById('authPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('authSubmit').addEventListener('click', doLogin);
+
+  function doLogin() {
+    var pw = document.getElementById('authPassword').value;
+    sha256(pw).then(function(hash) {
+      if (hash === ADMIN_HASH) {
+        sessionStorage.setItem(SESSION_KEY, 'admin');
+        unlock(true);
+      } else if (CLIENT_HASH && hash === CLIENT_HASH) {
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        unlock(false);
+      } else {
+        document.getElementById('authError').style.display = 'block';
+        document.getElementById('authPassword').value = '';
+        document.getElementById('authPassword').focus();
+      }
+    });
+  }
+
+  function unlock(adminAccess) {
+    var gate = document.getElementById('authGate');
+    if (gate) gate.style.display = 'none';
+    var allChildren = document.body.children;
+    for (var i = 0; i < allChildren.length; i++) {
+      if (allChildren[i].id !== 'authGate') allChildren[i].style.display = '';
+    }
+    var editBtn = document.getElementById('editModeBtn');
+    if (editBtn) editBtn.style.display = adminAccess ? '' : 'none';
+  }
+
+  function sha256(message) {
+    var msgBuffer = new TextEncoder().encode(message);
+    return crypto.subtle.digest('SHA-256', msgBuffer).then(function(hashBuffer) {
+      var hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    });
+  }
+})();
+</script>
+<!-- End Auth Gate -->
+
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
 <!-- ── Header ── -->
@@ -830,7 +959,7 @@
   <div class="header">
     <div class="header-top">
       <h1>ESG Workflow Implementation</h1>
-      <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" aria-label="Toggle edit mode">
+      <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" aria-label="Toggle edit mode" style="display:none;">
         <span class="edit-mode-icon">&#9998;</span> <span class="edit-mode-text">Edit</span>
       </button>
     </div>
@@ -869,7 +998,7 @@
 
 <!-- ── Workflow Pipeline Overview ── -->
 <div class="pipeline-section">
-  <div class="pipeline-title">Workflow Pipeline Overview</div>
+  <div class="pipeline-title pipeline-title-editable" contenteditable="false" onblur="savePipelineTitle()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Workflow Pipeline Overview</div>
   <div style="display:flex; gap:18px; margin-bottom:14px; flex-wrap:wrap;">
     <div style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:600; color:#4a5568;"><span class="pip-dot pip-done" style="width:14px;height:14px;font-size:8px;">✓</span> Completed</div>
     <div style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:600; color:#4a5568;"><span class="pip-dot pip-progress" style="width:14px;height:14px;font-size:7px;">⬤</span> In Progress</div>
@@ -4144,30 +4273,26 @@
         });
         data[list.id] = entries;
       });
-      try { localStorage.setItem('certa-ibvogt-comments', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-comments', data);
     }
 
     function loadComments() {
-      try {
-        const raw = localStorage.getItem('certa-ibvogt-comments');
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        Object.keys(data).forEach(listId => {
-          const list = document.getElementById(listId);
+      cloudLoad('certa-ibvogt-comments', function(data) {
+        Object.keys(data).forEach(function(listId) {
+          var list = document.getElementById(listId);
           if (!list || !data[listId].length) return;
-          // Only load if user has added new comments (more than pre-seeded)
-          const currentCount = list.querySelectorAll('.comment-entry').length;
+          var currentCount = list.querySelectorAll('.comment-entry').length;
           if (data[listId].length > currentCount) {
             list.innerHTML = '';
-            data[listId].forEach(c => {
-              const entry = document.createElement('div');
+            data[listId].forEach(function(c) {
+              var entry = document.createElement('div');
               entry.className = 'comment-entry';
               entry.innerHTML = '<div class="comment-meta">' + c.date + '</div><div class="comment-text">' + c.text + '</div><button class="comment-delete" onclick="deleteComment(this)" title="Delete comment" aria-label="Delete this comment">&#10005;</button>';
               list.appendChild(entry);
             });
           }
         });
-      } catch(e) {}
+      });
     }
 
     // Panel toggle logic with keyboard + ARIA support
@@ -4317,7 +4442,7 @@
       try {
         const all = JSON.parse(localStorage.getItem('certa-ibvogt-advance') || '{}');
         delete all[panelId];
-        localStorage.setItem('certa-ibvogt-advance', JSON.stringify(all));
+        cloudSave('certa-ibvogt-advance', all);
       } catch(e) {}
     }
 
@@ -4339,22 +4464,19 @@
       try {
         const all = JSON.parse(localStorage.getItem('certa-ibvogt-advance') || '{}');
         all[panelId] = { status, ...data };
-        localStorage.setItem('certa-ibvogt-advance', JSON.stringify(all));
+        cloudSave('certa-ibvogt-advance', all);
       } catch(e) {}
     }
 
     function loadAdvanceStates() {
-      try {
-        const raw = localStorage.getItem('certa-ibvogt-advance');
-        if (!raw) return;
-        const all = JSON.parse(raw);
-        Object.keys(all).forEach(panelId => {
-          const d = all[panelId];
+      cloudLoad('certa-ibvogt-advance', function(all) {
+        Object.keys(all).forEach(function(panelId) {
+          var d = all[panelId];
           if (d.status === 'pending') recommendAdvance(panelId, d.workflowName, d.currentStage, d.nextStage);
           else if (d.status === 'approved') approveAdvance(panelId, d.workflowName, d.currentStage, d.nextStage);
           else if (d.status === 'declined') declineAdvance(panelId, d.workflowName, d.currentStage, d.nextStage);
         });
-      } catch(e) {}
+      });
     }
 
     // ── Workflow Descriptions Save/Load ──
@@ -4363,19 +4485,16 @@
       document.querySelectorAll('.wf-desc[data-wf]').forEach(el => {
         data[el.getAttribute('data-wf')] = el.textContent;
       });
-      try { localStorage.setItem('certa-ibvogt-descriptions', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-descriptions', data);
     }
 
     function loadDescriptions() {
-      try {
-        const raw = localStorage.getItem('certa-ibvogt-descriptions');
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        Object.keys(data).forEach(wfId => {
-          const el = document.querySelector('.wf-desc[data-wf="' + wfId + '"]');
+      cloudLoad('certa-ibvogt-descriptions', function(data) {
+        Object.keys(data).forEach(function(wfId) {
+          var el = document.querySelector('.wf-desc[data-wf="' + wfId + '"]');
           if (el) el.textContent = data[wfId];
         });
-      } catch(e) {}
+      });
     }
 
 
@@ -4443,18 +4562,15 @@
         var activeBtn = toggle.querySelector('.status-btn[class*="active-"]');
         if (activeBtn) data[panelId] = activeBtn.getAttribute('data-status');
       });
-      try { localStorage.setItem('certa-ibvogt-statuses', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-statuses', data);
     }
 
     function loadStatusStates() {
-      try {
-        var raw = localStorage.getItem('certa-ibvogt-statuses');
-        if (!raw) return;
-        var data = JSON.parse(raw);
+      cloudLoad('certa-ibvogt-statuses', function(data) {
         Object.keys(data).forEach(function(panelId) {
           cycleStatus(panelId, data[panelId]);
         });
-      } catch(e) {}
+      });
     }
 
     // ── Editable Column Names ──
@@ -4504,21 +4620,18 @@
       document.querySelectorAll('.col-label[data-stage]').forEach(function(el) {
         data[el.getAttribute('data-stage')] = el.textContent.trim();
       });
-      try { localStorage.setItem('certa-ibvogt-colnames', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-colnames', data);
     }
 
     function loadColumnNames() {
-      try {
-        var raw = localStorage.getItem('certa-ibvogt-colnames');
-        if (!raw) return;
-        var data = JSON.parse(raw);
+      cloudLoad('certa-ibvogt-colnames', function(data) {
         Object.keys(data).forEach(function(stage) {
           var colLabel = document.querySelector('.col-label[data-stage="' + stage + '"]');
           if (colLabel) colLabel.textContent = data[stage];
           var legendItem = document.querySelector('.stacked-legend-item[data-legend="' + stage + '"] .legend-text');
           if (legendItem) legendItem.textContent = data[stage];
         });
-      } catch(e) {}
+      });
     }
 
     // ── Edit Mode ──
@@ -4558,7 +4671,7 @@
           data[desc.getAttribute('data-wf')] = el.textContent.trim();
         }
       });
-      try { localStorage.setItem('certa-ibvogt-wfnames', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-wfnames', data);
       // Also sync the name into panel headers
       Object.keys(data).forEach(function(wfId) {
         var stages = ['fb', 'intrev', 'qa', 'uat', 'launch'];
@@ -4578,17 +4691,13 @@
     }
 
     function loadWorkflowNames() {
-      try {
-        var raw = localStorage.getItem('certa-ibvogt-wfnames');
-        if (!raw) return;
-        var data = JSON.parse(raw);
+      cloudLoad('certa-ibvogt-wfnames', function(data) {
         Object.keys(data).forEach(function(wfId) {
           var desc = document.querySelector('.wf-desc[data-wf="' + wfId + '"]');
           if (desc) {
             var nameSpan = desc.closest('th').querySelector('.wf-name-text');
             if (nameSpan) nameSpan.textContent = data[wfId];
           }
-          // Sync to panel headers
           var stages = ['fb', 'intrev', 'qa', 'uat', 'launch'];
           stages.forEach(function(stage) {
             var panel = document.getElementById('panel-' + wfId + '-' + stage);
@@ -4603,7 +4712,7 @@
             }
           });
         });
-      } catch(e) {}
+      });
     }
 
     var undoTimer = null;
@@ -4842,7 +4951,7 @@
           });
         }
       });
-      try { localStorage.setItem('certa-ibvogt-workflows', JSON.stringify(wfData)); } catch(e) {}
+      cloudSave('certa-ibvogt-workflows', wfData);
     }
 
     function updateStackedBar() {
@@ -4976,22 +5085,17 @@
           text: e.querySelector('.feedback-text') ? e.querySelector('.feedback-text').textContent : ''
         });
       });
-      try { localStorage.setItem('certa-ibvogt-feedback', JSON.stringify(entries)); } catch(e) {}
+      cloudSave('certa-ibvogt-feedback', entries);
     }
 
     function loadFeedback() {
-      try {
-        var raw = localStorage.getItem('certa-ibvogt-feedback');
-        if (!raw) return;
-        var entries = JSON.parse(raw);
-        if (!entries.length) return;
-
+      cloudLoad('certa-ibvogt-feedback', function(entries) {
+        if (!entries || !entries.length) return;
         var list = document.getElementById('feedback-list');
         list.innerHTML = '';
         entries.forEach(function(fb) {
           var avatar = getAvatarForName(fb.author);
           var editable = editMode ? 'true' : 'false';
-
           var entry = document.createElement('div');
           entry.className = 'feedback-entry';
           entry.innerHTML = '<div class="feedback-avatar ' + avatar.cls + '">' + avatar.letter + '</div>' +
@@ -5002,7 +5106,7 @@
             '<button class="feedback-delete" onclick="deleteFeedback(this)" title="Delete" aria-label="Delete this feedback">&#10005;</button>';
           list.appendChild(entry);
         });
-      } catch(e) {}
+      });
     }
 
     function saveFeedbackMeta() {
@@ -5012,19 +5116,16 @@
         title: title ? title.textContent.trim() : 'Client Feedback',
         subtitle: subtitle ? subtitle.textContent.trim() : ''
       };
-      try { localStorage.setItem('certa-ibvogt-feedback-meta', JSON.stringify(data)); } catch(e) {}
+      cloudSave('certa-ibvogt-feedback-meta', data);
     }
 
     function loadFeedbackMeta() {
-      try {
-        var raw = localStorage.getItem('certa-ibvogt-feedback-meta');
-        if (!raw) return;
-        var data = JSON.parse(raw);
+      cloudLoad('certa-ibvogt-feedback-meta', function(data) {
         var title = document.querySelector('.feedback-title-editable');
         var subtitle = document.querySelector('.feedback-subtitle-editable');
         if (title && data.title) title.textContent = data.title;
         if (subtitle && data.subtitle) subtitle.textContent = data.subtitle;
-      } catch(e) {}
+      });
     }
 
     loadFeedback();
